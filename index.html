@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE HAUNTED SCHOOL — ESCAPE BEFORE THE BELL</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&family=VT323&display=swap');
+
+    :root {
+        --bg-black: #060707;
+        --dark-grey: #121415;
+        --faded-green: #2d3830;
+        --dirty-cream: #d2cbb8;
+        --burgundy: #6b0f1a;
+        --blood-red: #a81c1c;
+        --sickly-green: #39ff14;
+        --panel-bg: rgba(18, 20, 21, 0.95);
+    }
+
+    * {
+        box-sizing: border-box;
+        user-select: none;
+    }
+
+    body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100vh;
+        background-color: var(--bg-black);
+        color: var(--dirty-cream);
+        font-family: 'Special Elite', monospace;
+        overflow-x: hidden;
+        overflow-y: auto;
+        cursor: crosshair;
+    }
+
+    /* Ambient Flickering Dark Atmosphere */
+    #game-container {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        background: radial-gradient(circle at center, #1b211e 0%, #060707 90%);
+    }
+
+    /* Vignette & CRT Scanline Effect */
+    #game-container::before {
+        content: " ";
+        position: fixed;
+        top: 0; left: 0; bottom: 0; right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+        z-index: 10;
+        background-size: 100% 3px, 6px 100%;
+        pointer-events: none;
+    }
+
+    #vignette {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        box-shadow: inset 0 0 120px rgba(0,0,0,0.95);
+        pointer-events: none;
+        z-index: 11;
+    }
+
+    /* Screaming Static Overlay Canvas */
+    #static-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 99;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.1s ease;
+    }
+
+    /* Glitch / Shake Camera Animations */
+    .shake {
+        animation: violentShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes violentShake {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        10% { transform: translate(-12px, -8px) rotate(-2deg); filter: hue-rotate(90deg); }
+        20% { transform: translate(14px, 8px) rotate(2deg); }
+        30% { transform: translate(-10px, 10px) rotate(-1deg); }
+        40% { transform: translate(10px, -12px) rotate(3deg); }
+        50% { transform: translate(-12px, 6px) rotate(-2deg); }
+        60% { transform: translate(12px, -6px) rotate(1deg); }
+        70% { transform: translate(-6px, 8px) rotate(-1deg); }
+        80% { transform: translate(8px, -4px) rotate(2deg); }
+        90% { transform: translate(-2px, 4px) rotate(0deg); }
+        100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    /* Ghost Silhouette Layer */
+    #ghost-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle at 50% 50%, rgba(168, 28, 28, 0.4), rgba(0, 0, 0, 0.95));
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 90;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+
+    #ghost-overlay svg {
+        width: 340px;
+        filter: drop-shadow(0 0 30px rgba(255, 0, 0, 0.9));
+        animation: ghostPulse 1.2s infinite alternate;
+    }
+
+    @keyframes ghostPulse {
+        0% { transform: scale(0.9); opacity: 0.7; }
+        100% { transform: scale(1.15); opacity: 1; }
+    }
+
+    /* Header Bar / HUD */
+    #hud {
+        position: sticky;
+        top: 0;
+        width: 100%;
+        padding: 15px 30px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(6, 7, 7, 0.95);
+        border-bottom: 2px solid var(--burgundy);
+        z-index: 25;
+        gap: 10px;
+    }
+
+    .hud-title {
+        font-family: 'Creepster', cursive;
+        font-size: 26px;
+        color: var(--blood-red);
+        letter-spacing: 2px;
+        text-shadow: 0 0 8px rgba(168, 28, 28, 0.6);
+    }
+
+    .hud-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        font-size: 16px;
+    }
+
+    .hud-box {
+        background: var(--dark-grey);
+        border: 1px solid #333;
+        padding: 6px 14px;
+        border-radius: 4px;
+    }
+
+    .keys-inventory {
+        display: flex;
+        gap: 8px;
+    }
+
+    .key-icon {
+        width: 24px;
+        height: 24px;
+        opacity: 0.2;
+        filter: grayscale(100%);
+        transition: all 0.5s ease;
+    }
+
+    .key-icon.acquired {
+        opacity: 1;
+        filter: grayscale(0%) drop-shadow(0 0 6px var(--sickly-green));
+    }
+
+    /* Main Viewport Container */
+    #viewport {
+        position: relative;
+        width: 100%;
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 30px 20px 80px 20px;
+        z-index: 15;
+    }
+
+    /* Screens */
+    .screen {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 900px;
+        text-align: center;
+    }
+
+    .screen.active {
+        display: flex;
+    }
+
+    /* Intro Screen */
+    #intro-screen h1 {
+        font-family: 'Creepster', cursive;
+        font-size: 56px;
+        color: var(--blood-red);
+        margin: 0;
+        text-shadow: 0 0 15px rgba(168, 28, 28, 0.8);
+        letter-spacing: 3px;
+    }
+
+    #intro-screen h2 {
+        font-size: 20px;
+        letter-spacing: 4px;
+        color: var(--dirty-cream);
+        margin-top: -5px;
+        margin-bottom: 20px;
+    }
+
+    .story-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--burgundy);
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        max-width: 700px;
+        line-height: 1.6;
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+
+    .warning-text {
+        color: var(--blood-red);
+        font-family: 'VT323', monospace;
+        font-size: 24px;
+        animation: blink 1s infinite;
+        margin-top: 10px;
+        margin-bottom: 15px;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.2; }
+    }
+
+    /* Custom Buttons */
+    .btn {
+        background: linear-gradient(180deg, #2b0b0e 0%, #120405 100%);
+        color: var(--dirty-cream);
+        border: 2px solid var(--burgundy);
+        padding: 14px 32px;
+        font-family: 'Special Elite', monospace;
+        font-size: 18px;
+        cursor: pointer;
+        margin: 10px;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    .btn:hover {
+        background: var(--burgundy);
+        border-color: var(--blood-red);
+        color: #fff;
+        box-shadow: 0 0 15px rgba(168, 28, 28, 0.6);
+        transform: translateY(-2px);
+    }
+
+    .btn:active {
+        transform: translateY(1px);
+    }
+
+    /* Map / Door Selection */
+    .map-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        width: 100%;
+        max-width: 750px;
+    }
+
+    .door-card {
+        background: var(--panel-bg);
+        border: 2px solid #333;
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .door-card.unlocked:hover {
+        border-color: var(--sickly-green);
+        box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
+    }
+
+    .door-card.locked {
+        opacity: 0.5;
+        cursor: not-allowed;
+        filter: grayscale(100%);
+    }
+
+    .door-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+    }
+
+    .door-title {
+        font-size: 18px;
+        color: #fff;
+        margin-bottom: 5px;
+    }
+
+    .door-status {
+        font-size: 12px;
+        color: #888;
+    }
+
+    /* Question Screen Layout */
+    .quiz-card {
+        background: var(--panel-bg);
+        border: 2px solid #3d4540;
+        border-radius: 10px;
+        padding: 30px;
+        width: 100%;
+        max-width: 800px;
+        box-shadow: 0 0 40px rgba(0,0,0,0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .question-prompt {
+        font-size: 22px;
+        margin-bottom: 25px;
+        line-height: 1.4;
+        color: #fff;
+    }
+
+    .options-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 15px;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .option-btn {
+        background: rgba(25, 30, 28, 0.9);
+        border: 1px solid #4a544f;
+        padding: 16px;
+        border-radius: 6px;
+        color: var(--dirty-cream);
+        font-family: 'Special Elite', monospace;
+        font-size: 18px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .option-btn:hover {
+        background: #2d3830;
+        border-color: var(--sickly-green);
+        color: #fff;
+    }
+
+    .option-btn.correct {
+        background: #1e4620 !important;
+        border-color: var(--sickly-green) !important;
+        color: #fff !important;
+    }
+
+    .option-btn.wrong {
+        background: #4a1216 !important;
+        border-color: var(--blood-red) !important;
+        color: #ff9e9e !important;
+    }
+
+    /* Feedback Box */
+    #feedback-box {
+        min-height: 50px;
+        font-size: 16px;
+        margin-top: 10px;
+        color: var(--blood-red);
+        font-weight: bold;
+    }
+
+    /* SVGs for Shapes Section */
+    .shape-svg {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 15px;
+        filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+    }
+
+    /* Final Escape / Victory Screen */
+    .victory-title {
+        font-family: 'Creepster', cursive;
+        font-size: 52px;
+        color: #ffd700;
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        margin: 0;
+    }
+
+    .report-card {
+        background: rgba(10, 20, 15, 0.95);
+        border: 2px solid #ffd700;
+        padding: 25px;
+        border-radius: 8px;
+        width: 100%;
+        max-width: 650px;
+        text-align: left;
+        margin: 20px 0;
+    }
+
+    .report-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    #mistakes-list {
+        max-height: 200px;
+        overflow-y: auto;
+        text-align: left;
+        background: #000;
+        padding: 15px;
+        border: 1px solid #444;
+        margin-top: 15px;
+        font-size: 14px;
+    }
+
+    /* Sound Toggle Pill */
+    .sound-toggle {
+        position: fixed;
+        bottom: 15px;
+        right: 20px;
+        background: rgba(0,0,0,0.85);
+        border: 1px solid #444;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        cursor: pointer;
+        z-index: 30;
+    }
+
+</style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="vignette"></div>
+    <canvas id="static-canvas"></canvas>
+
+    <!-- Ghost Jumpscare / Warning Overlay -->
+    <div id="ghost-overlay">
+        <svg viewBox="0 0 100 120">
+            <path d="M 50 10 C 25 10 10 35 10 60 C 10 90 20 100 25 110 C 30 100 35 110 45 100 C 50 110 60 100 70 110 C 75 100 90 90 90 60 C 90 35 75 10 50 10 Z" fill="#ffffff" opacity="0.85"/>
+            <circle cx="35" cy="45" r="6" fill="#a81c1c" />
+            <circle cx="65" cy="45" r="6" fill="#a81c1c" />
+            <ellipse cx="50" cy="70" rx="10" ry="15" fill="#000000" />
+        </svg>
+    </div>
+
+    <!-- Top HUD Banner -->
+    <div id="hud">
+        <div class="hud-title">THE HAUNTED SCHOOL</div>
+        <div class="hud-stats">
+            <div class="hud-box" id="hud-progress">QUESTION: 0 / 28</div>
+            <div class="hud-box" id="hud-score">SURVIVAL SCORE: 280 / 280</div>
+            <div class="hud-box keys-inventory">
+                <span class="key-icon" id="key-1">🔑</span>
+                <span class="key-icon" id="key-2">🔑</span>
+                <span class="key-icon" id="key-3">🔑</span>
+                <span class="key-icon" id="key-4">🔑</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dynamic Viewport -->
+    <div id="viewport">
+
+        <!-- 1. INTRO SCREEN -->
+        <div id="intro-screen" class="screen active">
+            <h1>THE HAUNTED SCHOOL</h1>
+            <h2>ESCAPE BEFORE THE BELL</h2>
+
+            <div class="story-card">
+                <p>School is over. Everyone has gone home. But you are still inside...</p>
+                <p>The lights suddenly go out. The classroom doors lock. Somewhere in the corridor, a bell begins to ring.</p>
+                <p>A message appears on the old flickering school television:</p>
+                <p style="color: var(--sickly-green); font-family: 'VT323'; font-size: 22px;">"FOUR ROOMS. FOUR CHALLENGES. ONE WAY OUT."</p>
+                <p>To escape, answer the English challenges hidden inside. Be careful: the ghosts are watching. You have <strong>THREE attempts</strong> for each question.</p>
+            </div>
+
+            <div class="warning-text">WARNING: DO NOT LET THE BELL RING THREE TIMES.</div>
+
+            <div>
+                <button class="btn" onclick="startGame()">ENTER THE SCHOOL</button>
+            </div>
+        </div>
+
+        <!-- 2. ROOM MAP SCREEN -->
+        <div id="map-screen" class="screen">
+            <h2 style="font-family: 'Creepster'; font-size: 36px; color: var(--blood-red); margin-bottom: 20px;">CHOOSE A HAUNTED SECTION</h2>
+            <div class="map-grid">
+                <div class="door-card unlocked" id="door-1" onclick="enterSection(0)">
+                    <div class="door-icon">🏫</div>
+                    <div class="door-title">1. The Haunted Classroom</div>
+                    <div class="door-status" id="status-1">UNLOCKED</div>
+                </div>
+                <div class="door-card locked" id="door-2" onclick="enterSection(1)">
+                    <div class="door-icon">🧪</div>
+                    <div class="door-title">2. Forbidden Science Room</div>
+                    <div class="door-status" id="status-2">LOCKED</div>
+                </div>
+                <div class="door-card locked" id="door-3" onclick="enterSection(2)">
+                    <div class="door-icon">📐</div>
+                    <div class="door-title">3. Room of Strange Symbols</div>
+                    <div class="door-status" id="status-3">LOCKED</div>
+                </div>
+                <div class="door-card locked" id="door-4" onclick="enterSection(3)">
+                    <div class="door-icon">📺</div>
+                    <div class="door-title">4. Cursed Number Room</div>
+                    <div class="door-status" id="status-4">LOCKED</div>
+                </div>
+            </div>
+            <button class="btn" id="exit-door-btn" style="margin-top: 25px; display: none; border-color: var(--sickly-green);" onclick="enterFinalEscape()">🚪 UNLOCK EMERGENCY EXIT</button>
+        </div>
+
+        <!-- 3. QUESTION QUIZ SCREEN -->
+        <div id="quiz-screen" class="screen">
+            <div class="quiz-card">
+                <div id="section-header" style="font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">SECTION 1</div>
+                
+                <div id="shape-container"></div>
+
+                <div class="question-prompt" id="question-text">Question text goes here?</div>
+
+                <div class="options-grid" id="options-container">
+                    <!-- Dynamic Buttons -->
+                </div>
+
+                <div id="feedback-box"></div>
+
+                <button class="btn" id="next-btn" style="display: none;" onclick="nextQuestion()">CONTINUE TO NEXT QUESTION</button>
+            </div>
+        </div>
+
+        <!-- 4. FINAL ESCAPE SEQUENCE SCREEN -->
+        <div id="escape-screen" class="screen">
+            <h2 style="font-family: 'Creepster'; font-size: 42px; color: var(--blood-red);">THE FINAL EMERGENCY EXIT</h2>
+            <div class="story-card">
+                <p>You stand before the dark heavy iron door at the end of the long hallway.</p>
+                <p>You have collected all four keys. They begin to glow softly in your hands.</p>
+                <p style="color: var(--blood-red);">"THE SCHOOL DOES NOT WANT TO LET YOU GO..."</p>
+            </div>
+            <button class="btn" style="font-size: 24px; border-color: #ffd700;" onclick="triggerFinalUnlock()">INSERT KEYS & ESCAPE</button>
+        </div>
+
+        <!-- 5. VICTORY / REPORT SCREEN -->
+        <div id="victory-screen" class="screen">
+            <h1 class="victory-title">MISSION ACCOMPLISHED!</h1>
+            <p style="font-size: 20px; color: #fff;">YOU ESCAPED THE HAUNTED SCHOOL!</p>
+
+            <div class="report-card">
+                <h3 style="margin-top:0; color: #ffd700; text-align: center;">SURVIVOR'S FINAL REPORT</h3>
+                <div class="report-line"><span>Total Score:</span><strong id="rep-score">0 / 280</strong></div>
+                <div class="report-line"><span>Questions Answered Correctly:</span><strong id="rep-correct">0 / 28</strong></div>
+                <div class="report-line"><span>Questions Failed (3 Attempts):</span><strong id="rep-failed">0</strong></div>
+                <div class="report-line"><span>Total Attempts Used:</span><strong id="rep-attempts">0</strong></div>
+                <hr style="border-color: #333; margin: 15px 0;">
+                <div class="report-line"><span>Haunted Classroom:</span><span id="rep-s1">0/70</span></div>
+                <div class="report-line"><span>Forbidden Science Room:</span><span id="rep-s2">0/70</span></div>
+                <div class="report-line"><span>Room of Strange Symbols:</span><span id="rep-s3">0/70</span></div>
+                <div class="report-line"><span>Cursed Number Room:</span><span id="rep-s4">0/70</span></div>
+                
+                <p id="rep-msg" style="color: var(--sickly-green); font-size: 16px; margin-top: 15px; text-align: center; font-weight: bold;"></p>
+            </div>
+
+            <div id="mistakes-container" style="display: none; width: 100%; max-width: 650px;">
+                <h4 style="color: var(--blood-red); margin-bottom: 5px;">FAILED QUESTIONS REVIEW:</h4>
+                <div id="mistakes-list"></div>
+            </div>
+
+            <div>
+                <button class="btn" onclick="resetGame()">PLAY AGAIN</button>
+                <button class="btn" onclick="toggleMistakes()">REVIEW MY MISTAKES</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Sound Toggle Button -->
+    <div class="sound-toggle" onclick="toggleSound()">🔊 SOUND: <span id="sound-status">ON</span></div>
+</div>
+
+<script>
+/* ==========================================================================
+   ADVANCED SYNTHESIZER FOR CREEPY & EERIE HORROR AUDIO
+   ========================================================================== */
+let audioCtx = null;
+let soundEnabled = true;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    document.getElementById('sound-status').innerText = soundEnabled ? "ON" : "OFF";
+}
+
+function playSound(type) {
+    if (!soundEnabled) return;
+    initAudio();
+
+    const now = audioCtx.currentTime;
+
+    if (type === 'bell') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 2.5);
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 2.5);
+
+    } else if (type === 'correct') {
+        // Light, pleasant magic chime
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+
+        osc1.frequency.setValueAtTime(523.25, now); // C5
+        osc1.frequency.setValueAtTime(659.25, now + 0.12); // E5
+
+        osc2.frequency.setValueAtTime(1046.50, now); // C6
+        osc2.frequency.setValueAtTime(1318.51, now + 0.12); // E6
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.5);
+        osc2.stop(now + 0.5);
+
+    } else if (type === 'wrong-static-1') {
+        // Attempt 1: Creepy pitch-drop metallic whisper screech + noise
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.45);
+
+        // White noise layer
+        const bufferSize = audioCtx.sampleRate * 0.45;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * 0.6;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+
+        osc.connect(gain);
+        noise.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        noise.start(now);
+        osc.stop(now + 0.45);
+
+    } else if (type === 'wrong-static-2') {
+        // Attempt 2: Disharmonic screech dual saw sweep + filter glitch
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sawtooth';
+        osc2.type = 'sawtooth';
+
+        osc1.frequency.setValueAtTime(150, now);
+        osc1.frequency.linearRampToValueAtTime(900, now + 0.25);
+        osc1.frequency.linearRampToValueAtTime(90, now + 0.6);
+
+        osc2.frequency.setValueAtTime(165, now); // Off-pitch disharmony
+        osc2.frequency.linearRampToValueAtTime(930, now + 0.25);
+        osc2.frequency.linearRampToValueAtTime(80, now + 0.6);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(400, now);
+        filter.Q.setValueAtTime(5, now);
+
+        gain.gain.setValueAtTime(0.7, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.6);
+        osc2.stop(now + 0.6);
+
+    } else if (type === 'wrong-static-3') {
+        // Attempt 3: Violent Ghost Scream Jumpscare sound (High screech + Bass Boom drop)
+        const screamOsc = audioCtx.createOscillator();
+        const bassOsc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        screamOsc.type = 'sawtooth';
+        screamOsc.frequency.setValueAtTime(1200, now);
+        screamOsc.frequency.exponentialRampToValueAtTime(120, now + 0.85);
+
+        bassOsc.type = 'sine';
+        bassOsc.frequency.setValueAtTime(140, now);
+        bassOsc.frequency.exponentialRampToValueAtTime(30, now + 0.85);
+
+        // Harsh static blast overlay
+        const bufferSize = audioCtx.sampleRate * 0.85;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * 0.8;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        gain.gain.setValueAtTime(0.9, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+
+        screamOsc.connect(gain);
+        bassOsc.connect(gain);
+        noise.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        screamOsc.start(now);
+        bassOsc.start(now);
+        noise.start(now);
+        screamOsc.stop(now + 0.85);
+        bassOsc.stop(now + 0.85);
+
+    } else if (type === 'key') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(987.77, now);
+        osc.frequency.setValueAtTime(1318.51, now + 0.15);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.6);
+
+    } else if (type === 'fanfare') {
+        const notes = [261.63, 329.63, 392.00, 523.25];
+        notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.15);
+            gain.gain.setValueAtTime(0.3, now + idx * 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.15 + 0.5);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.15);
+            osc.stop(now + idx * 0.15 + 0.5);
+        });
+    }
+}
+
+/* ==========================================================================
+   VISUAL HORROR EFFECTS & STATIC CANVAS
+   ========================================================================== */
+const staticCanvas = document.getElementById('static-canvas');
+const staticCtx = staticCanvas.getContext('2d');
+
+function resizeCanvas() {
+    staticCanvas.width = window.innerWidth;
+    staticCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function triggerStaticOverlay(durationMs, intensity = 1) {
+    staticCanvas.style.opacity = intensity;
+    let animationFrame;
+
+    function renderStatic() {
+        const w = staticCanvas.width;
+        const h = staticCanvas.height;
+        const imgData = staticCtx.createImageData(w, h);
+        const buffer = new Uint32Array(imgData.data.buffer);
+
+        for (let i = 0; i < buffer.length; i++) {
+            if (Math.random() < 0.3) {
+                buffer[i] = Math.random() < 0.1 ? 0xff0000ff : 0xffffffff;
+            } else {
+                buffer[i] = 0xee000000;
+            }
+        }
+        staticCtx.putImageData(imgData, 0, 0);
+        animationFrame = requestAnimationFrame(renderStatic);
+    }
+
+    renderStatic();
+
+    document.getElementById('game-container').classList.add('shake');
+
+    setTimeout(() => {
+        cancelAnimationFrame(animationFrame);
+        staticCanvas.style.opacity = 0;
+        document.getElementById('game-container').classList.remove('shake');
+    }, durationMs);
+}
+
+function triggerGhostOverlay(durationMs) {
+    const ghost = document.getElementById('ghost-overlay');
+    ghost.style.opacity = 1;
+    setTimeout(() => {
+        ghost.style.opacity = 0;
+    }, durationMs);
+}
+
+/* ==========================================================================
+   GAME CURRICULUM DATABASE
+   ========================================================================== */
+const GAME_DATA = [
+    // SECTION 1: THE HAUNTED CLASSROOM
+    {
+        section: 0,
+        title: "THE HAUNTED CLASSROOM",
+        q: "1. The teacher writes a word on the ______.",
+        options: ["blackboard", "pillow", "fridge", "river"],
+        answer: 0
+    },
+    {
+        section: 0,
+        title: "THE HAUNTED CLASSROOM",
+        q: "2. You want to remove a pencil mark. What do you use?",
+        options: ["A ruler", "An eraser", "A crayon", "A school bag"],
+        answer: 1
+    },
+    {
+        section: 0,
+        title: "THE HAUNTED CLASSROOM",
+        q: "3. Please ______ carefully to the teacher.",
+        options: ["listen", "draw", "paste", "sweep"],
+        answer: 0
+    },
+    {
+        section: 0,
+        title: "THE HAUNTED CLASSROOM",
+        q: "4. You use scissors to ______ paper.",
+        options: ["count", "cut", "borrow", "read"],
+        answer: 1
+    },
+    {
+        section: 0,
+        title: "THE HAUNTED CLASSROOM",
+        q: "5. Choose the correct sentence.",
+        options: ["I am draw a cat.", "I drawing a cat.", "I am drawing a cat.", "I are drawing a cat."],
+        answer: 2
+    },
+    {
+        section: 0,
+        title: "THE HAUNTED CLASSROOM",
+        q: "6. Amir has no ruler. He asks Ben to use Ben's ruler and will return it later. What does Amir do?",
+        options: ["He borrows a ruler.", "He lends a ruler.", "He erases a ruler.", "He colours a ruler."],
+        answer: 0
+    },
+    {
+        section: 0,
+        title: "THE HAUNTED CLASSROOM",
+        q: "7. The pupils ______ their books and ______ to the teacher.",
+        options: ["open / listen", "opens / listens", "opening / listened", "close / draws"],
+        answer: 0
+    },
+
+    // SECTION 2: FORBIDDEN SCIENCE ROOM
+    {
+        section: 1,
+        title: "FORBIDDEN SCIENCE ROOM",
+        q: "8. Which animal lives in the ocean?",
+        options: ["Dolphin", "Camel", "Rabbit", "Lion"],
+        answer: 0
+    },
+    {
+        section: 1,
+        title: "FORBIDDEN SCIENCE ROOM",
+        q: "9. A camel can live in the ______.",
+        options: ["desert", "ocean", "classroom", "pond"],
+        answer: 0
+    },
+    {
+        section: 1,
+        title: "FORBIDDEN SCIENCE ROOM",
+        q: "10. Which animal can live both on land and in water?",
+        options: ["Frog", "Camel", "Monkey", "Lion"],
+        answer: 0
+    },
+    {
+        section: 1,
+        title: "FORBIDDEN SCIENCE ROOM",
+        q: "11. A bird builds its ______ in a tree.",
+        options: ["nest", "burrow", "pond", "shell"],
+        answer: 0
+    },
+    {
+        section: 1,
+        title: "FORBIDDEN SCIENCE ROOM",
+        q: "12. Which habitat is most suitable for a polar bear?",
+        options: ["Polar region", "Hot desert", "Dry grassland", "School library"],
+        answer: 0
+    },
+    {
+        section: 1,
+        title: "FORBIDDEN SCIENCE ROOM",
+        q: "13. Rabbits can live in underground ______.",
+        options: ["burrows", "oceans", "nests in trees only", "classrooms"],
+        answer: 0
+    },
+    {
+        section: 1,
+        title: "FORBIDDEN SCIENCE ROOM",
+        q: "14. Which pair is matched correctly?",
+        options: ["Fish — water", "Camel — ocean", "Dolphin — desert", "Polar bear — hot desert"],
+        answer: 0
+    },
+
+    // SECTION 3: ROOM OF STRANGE SYMBOLS
+    {
+        section: 2,
+        title: "ROOM OF STRANGE SYMBOLS",
+        shapeSvg: `<svg class="shape-svg" viewBox="0 0 100 100"><polygon points="50,15 90,85 10,85" fill="none" stroke="#39ff14" stroke-width="4"/></svg>`,
+        q: "15. Which shape has three sides?",
+        options: ["Triangle", "Square", "Circle", "Rectangle"],
+        answer: 0
+    },
+    {
+        section: 2,
+        title: "ROOM OF STRANGE SYMBOLS",
+        shapeSvg: `<svg class="shape-svg" viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="none" stroke="#39ff14" stroke-width="4"/></svg>`,
+        q: "16. How many sides does a square have?",
+        options: ["2", "3", "4", "5"],
+        answer: 2
+    },
+    {
+        section: 2,
+        title: "ROOM OF STRANGE SYMBOLS",
+        shapeSvg: `<svg class="shape-svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="none" stroke="#39ff14" stroke-width="4"/></svg>`,
+        q: "17. Which shape has no straight sides and no corners?",
+        options: ["Circle", "Triangle", "Rectangle", "Pentagon"],
+        answer: 0
+    },
+    {
+        section: 2,
+        title: "ROOM OF STRANGE SYMBOLS",
+        shapeSvg: `<svg class="shape-svg" viewBox="0 0 100 100"><rect x="15" y="30" width="70" height="40" fill="none" stroke="#39ff14" stroke-width="4"/></svg>`,
+        q: "18. Which shape has four sides, with two long sides and two short sides?",
+        options: ["Rectangle", "Circle", "Triangle", "Star"],
+        answer: 0
+    },
+    {
+        section: 2,
+        title: "ROOM OF STRANGE SYMBOLS",
+        q: "19. Which object is most likely to have a circular face?",
+        options: ["A coin", "A ruler", "A book", "A door"],
+        answer: 0
+    },
+    {
+        section: 2,
+        title: "ROOM OF STRANGE SYMBOLS",
+        shapeSvg: `<svg class="shape-svg" viewBox="0 0 100 100"><polygon points="50,10 90,38 75,85 25,85 10,38" fill="none" stroke="#39ff14" stroke-width="4"/></svg>`,
+        q: "20. A shape has five straight sides. What is it called?",
+        options: ["Pentagon", "Hexagon", "Triangle", "Circle"],
+        answer: 0
+    },
+    {
+        section: 2,
+        title: "ROOM OF STRANGE SYMBOLS",
+        shapeSvg: `<svg class="shape-svg" viewBox="0 0 100 100"><polygon points="50,10 85,28 85,72 50,90 15,72 15,28" fill="none" stroke="#39ff14" stroke-width="4"/></svg>`,
+        q: "21. The ghost draws a shape with six straight sides. Which shape is it?",
+        options: ["Hexagon", "Triangle", "Pentagon", "Oval"],
+        answer: 0
+    },
+
+    // SECTION 4: CURSED NUMBER ROOM
+    {
+        section: 3,
+        title: "CURSED NUMBER ROOM",
+        q: "22. What number comes after 29?",
+        options: ["28", "30", "39", "20"],
+        answer: 1
+    },
+    {
+        section: 3,
+        title: "CURSED NUMBER ROOM",
+        q: "23. Which number is written as forty-two?",
+        options: ["24", "42", "40", "14"],
+        answer: 1
+    },
+    {
+        section: 3,
+        title: "CURSED NUMBER ROOM",
+        q: "24. Complete the pattern: 15, 20, 25, ______.",
+        options: ["26", "30", "35", "24"],
+        answer: 1
+    },
+    {
+        section: 3,
+        title: "CURSED NUMBER ROOM",
+        q: "25. What is 17 + 6?",
+        options: ["21", "22", "23", "24"],
+        answer: 2
+    },
+    {
+        section: 3,
+        title: "CURSED NUMBER ROOM",
+        q: "26. What is 30 - 8?",
+        options: ["22", "28", "32", "18"],
+        answer: 0
+    },
+    {
+        section: 3,
+        title: "CURSED NUMBER ROOM",
+        q: "27. Which number is the smallest?",
+        options: ["36", "63", "26", "46"],
+        answer: 2
+    },
+    {
+        section: 3,
+        title: "CURSED NUMBER ROOM",
+        q: "28. Which number comes just before 70?",
+        options: ["69", "71", "60", "79"],
+        answer: 0
+    }
+];
+
+/* ==========================================================================
+   GAME STATE VARIABLES
+   ========================================================================== */
+let currentQuestionIdx = 0;
+let attemptsForCurrentQ = 0;
+let totalScore = 280;
+let totalAttemptsUsed = 0;
+let keysAcquired = [false, false, false, false];
+let sectionCompleted = [false, false, false, false];
+let failedQuestionsList = [];
+let sectionScores = [70, 70, 70, 70];
+
+/* ==========================================================================
+   GAME LOGIC & SCREEN SWITCHING
+   ========================================================================== */
+function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function startGame() {
+    playSound('bell');
+    showScreen('map-screen');
+    updateHUD();
+}
+
+function updateHUD() {
+    document.getElementById('hud-progress').innerText = `QUESTION: ${currentQuestionIdx} / 28`;
+    document.getElementById('hud-score').innerText = `SURVIVAL SCORE: ${totalScore} / 280`;
+
+    for (let i = 0; i < 4; i++) {
+        const keyEl = document.getElementById(`key-${i+1}`);
+        if (keysAcquired[i]) {
+            keyEl.classList.add('acquired');
+        } else {
+            keyEl.classList.remove('acquired');
+        }
+    }
+}
+
+function enterSection(secIdx) {
+    if (secIdx > 0 && !sectionCompleted[secIdx - 1]) return;
+
+    currentQuestionIdx = secIdx * 7;
+    loadQuestion(currentQuestionIdx);
+    showScreen('quiz-screen');
+}
+
+function loadQuestion(idx) {
+    attemptsForCurrentQ = 0;
+    const data = GAME_DATA[idx];
+
+    document.getElementById('section-header').innerText = `${data.title} — QUESTION ${(idx % 7) + 1} / 7`;
+    document.getElementById('question-text').innerText = data.q;
+    document.getElementById('feedback-box').innerText = "";
+    document.getElementById('next-btn').style.display = "none";
+
+    const shapeContainer = document.getElementById('shape-container');
+    shapeContainer.innerHTML = data.shapeSvg ? data.shapeSvg : "";
+
+    const optionsGrid = document.getElementById('options-container');
+    optionsGrid.innerHTML = "";
+
+    data.options.forEach((optText, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML = `<strong>${String.fromCharCode(65 + i)}.</strong> ${optText}`;
+        btn.onclick = () => handleAnswer(i);
+        optionsGrid.appendChild(btn);
+    });
+
+    updateHUD();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function handleAnswer(selectedIndex) {
+    const data = GAME_DATA[currentQuestionIdx];
+    const optionBtns = document.querySelectorAll('.option-btn');
+    const feedbackBox = document.getElementById('feedback-box');
+
+    attemptsForCurrentQ++;
+    totalAttemptsUsed++;
+
+    if (selectedIndex === data.answer) {
+        playSound('correct');
+        optionBtns[selectedIndex].classList.add('correct');
+        feedbackBox.style.color = "var(--sickly-green)";
+        feedbackBox.innerText = "CORRECT! The ghosts retreat...";
+        
+        optionBtns.forEach(btn => btn.onclick = null);
+        document.getElementById('next-btn').style.display = "inline-block";
+
+    } else {
+        optionBtns[selectedIndex].classList.add('wrong');
+
+        if (attemptsForCurrentQ === 1) {
+            playSound('wrong-static-1');
+            triggerStaticOverlay(400, 0.7);
+            feedbackBox.innerText = "WRONG ANSWER... The ghost is getting closer! (Attempts left: 2)";
+
+        } else if (attemptsForCurrentQ === 2) {
+            playSound('wrong-static-2');
+            triggerStaticOverlay(600, 0.9);
+            triggerGhostOverlay(300);
+            feedbackBox.innerText = "BE CAREFUL! The ghost is almost here! (Attempts left: 1)";
+
+        } else if (attemptsForCurrentQ >= 3) {
+            playSound('wrong-static-3');
+            triggerStaticOverlay(900, 1.0);
+            triggerGhostOverlay(700);
+
+            totalScore = Math.max(0, totalScore - 10);
+            sectionScores[data.section] -= 10;
+
+            optionBtns[data.answer].classList.add('correct');
+            feedbackBox.style.color = "var(--blood-red)";
+            feedbackBox.innerText = `THE GHOST CAUGHT YOU! Correct answer was: ${data.options[data.answer]}`;
+
+            failedQuestionsList.push({
+                q: data.q,
+                correct: data.options[data.answer]
+            });
+
+            optionBtns.forEach(btn => btn.onclick = null);
+            document.getElementById('next-btn').style.display = "inline-block";
+        }
+    }
+}
+
+function nextQuestion() {
+    currentQuestionIdx++;
+    updateHUD();
+
+    if (currentQuestionIdx % 7 === 0) {
+        const completedSec = (currentQuestionIdx / 7) - 1;
+        sectionCompleted[completedSec] = true;
+        keysAcquired[completedSec] = true;
+        playSound('key');
+
+        if (completedSec + 1 < 4) {
+            const nextDoor = document.getElementById(`door-${completedSec + 2}`);
+            nextDoor.classList.remove('locked');
+            nextDoor.classList.add('unlocked');
+            document.getElementById(`status-${completedSec + 2}`).innerText = "UNLOCKED";
+        }
+
+        if (sectionCompleted.every(Boolean)) {
+            document.getElementById('exit-door-btn').style.display = "inline-block";
+        }
+
+        showScreen('map-screen');
+    } else {
+        loadQuestion(currentQuestionIdx);
+    }
+}
+
+function enterFinalEscape() {
+    showScreen('escape-screen');
+}
+
+function triggerFinalUnlock() {
+    playSound('bell');
+    triggerStaticOverlay(1200, 1.0);
+    setTimeout(() => {
+        playSound('fanfare');
+        showVictoryScreen();
+    }, 1200);
+}
+
+function showVictoryScreen() {
+    showScreen('victory-screen');
+
+    document.getElementById('rep-score').innerText = `${totalScore} / 280`;
+    const failedCount = failedQuestionsList.length;
+    document.getElementById('rep-correct').innerText = `${28 - failedCount} / 28`;
+    document.getElementById('rep-failed').innerText = `${failedCount}`;
+    document.getElementById('rep-attempts').innerText = `${totalAttemptsUsed}`;
+
+    document.getElementById('rep-s1').innerText = `${sectionScores[0]} / 70`;
+    document.getElementById('rep-s2').innerText = `${sectionScores[1]} / 70`;
+    document.getElementById('rep-s3').innerText = `${sectionScores[2]} / 70`;
+    document.getElementById('rep-s4').innerText = `${sectionScores[3]} / 70`;
+
+    const msgEl = document.getElementById('rep-msg');
+    if (totalScore >= 250) {
+        msgEl.innerText = "LEGENDARY SURVIVOR! Your English skills are outstanding!";
+    } else if (totalScore >= 210) {
+        msgEl.innerText = "EXCELLENT ESCAPE! You solved almost every mystery!";
+    } else if (totalScore >= 150) {
+        msgEl.innerText = "WELL DONE! You escaped and showed great determination!";
+    } else if (totalScore >= 80) {
+        msgEl.innerText = "BRAVE SURVIVOR! You made it out. Keep practising to become stronger!";
+    } else {
+        msgEl.innerText = "YOU ESCAPED! Every challenge is a chance to learn. Keep trying and growing!";
+    }
+
+    const listEl = document.getElementById('mistakes-list');
+    listEl.innerHTML = "";
+    if (failedQuestionsList.length === 0) {
+        listEl.innerHTML = "<p style='color: var(--sickly-green)'>Perfect run! No mistakes were made!</p>";
+    } else {
+        failedQuestionsList.forEach(item => {
+            const p = document.createElement('p');
+            p.innerHTML = `⚠️ <strong>${item.q}</strong><br><span style="color:var(--sickly-green)">Correct Answer: ${item.correct}</span>`;
+            listEl.appendChild(p);
+        });
+    }
+}
+
+function toggleMistakes() {
+    const container = document.getElementById('mistakes-container');
+    container.style.display = container.style.display === "none" ? "block" : "none";
+}
+
+function resetGame() {
+    currentQuestionIdx = 0;
+    attemptsForCurrentQ = 0;
+    totalScore = 280;
+    totalAttemptsUsed = 0;
+    keysAcquired = [false, false, false, false];
+    sectionCompleted = [false, false, false, false];
+    sectionScores = [70, 70, 70, 70];
+    failedQuestionsList = [];
+
+    for (let i = 2; i <= 4; i++) {
+        const door = document.getElementById(`door-${i}`);
+        door.classList.remove('unlocked');
+        door.classList.add('locked');
+        document.getElementById(`status-${i}`).innerText = "LOCKED";
+    }
+    document.getElementById('exit-door-btn').style.display = "none";
+    document.getElementById('mistakes-container').style.display = "none";
+
+    showScreen('intro-screen');
+    updateHUD();
+}
+</script>
+</body>
+</html>
